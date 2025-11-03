@@ -1,0 +1,100 @@
+SET filename TO "calc_log.txt"
+SET backup_template TO "calc_log_backup_{timestamp}.txt"
+
+DECLARE menu_options AS DICTIONARY:
+    1: "Addition"
+    2: "Subtraction"
+    3: "Multiplication"
+    4: "Division"
+    5: "Backup & Clear Log"
+    6: "Exit"
+
+FUNCTION print_menu
+    FOR EACH key IN menu_options
+        WRITE key, " -- ", menu_options[key]
+    ENDFOR
+ENDFUNCTION
+
+FUNCTION write_log(operation, result, mode)
+    GET current_datetime
+    FORMAT current_datetime TO string
+    SET line TO formatted string containing operation, result, and timestamp
+    OPEN filename IN mode
+    WRITE line TO filename
+    CLOSE file
+    WRITE "Result logged using mode", mode
+ENDFUNCTION
+
+FUNCTION backup_and_clear
+    IF file EXISTS (filename) THEN
+        OPEN filename FOR reading AS original_file
+        READ content FROM original_file
+        GET timestamp AS current datetime formatted
+        SET backup_file TO backup_template WITH timestamp
+        OPEN backup_file FOR writing
+        WRITE content TO backup_file
+        CLOSE backup_file
+        CLEAR content of original_file
+        WRITE "Backup created and log cleared."
+    ELSE
+        WRITE "No log file found to back up."
+    ENDIF
+ENDFUNCTION
+
+FUNCTION Addition(num1, num2)
+    result = num1 + num2
+    WRITE "Result:", result
+    CALL write_log("Addition", result)
+ENDFUNCTION
+
+FUNCTION Subtraction(num1, num2)
+    result = ABS(num1 - num2)
+    WRITE "Result:", result
+    CALL write_log("Subtraction", result)
+ENDFUNCTION
+
+FUNCTION Multiplication(num1, num2)
+    result = num1 * num2
+    WRITE "Result:", result
+    CALL write_log("Multiplication", result)
+ENDFUNCTION
+
+FUNCTION Division(num1, num2)
+    IF num2 IS NOT 0 THEN
+        SET result TO num1 / num2
+        WRITE "Result:", result
+        CALL write_log("Division", result)
+    ELSE
+        WRITE "Error: Cannot divide by zero."
+    ENDIF
+ENDFUNCTION
+
+BEGIN MAIN
+    WHILE TRUE
+        CALL print_menu
+        PROMPT "Enter your choice (1-6):" AND READ option
+        IF option == 6 THEN
+            WRITE "Thanks for using the calculator. Exiting..."
+            BREAK
+        ELSE IF option == 5 THEN
+            CALL backup_and_clear
+            CONTINUE
+        ELSE IF option NOT IN menu_options THEN
+            WRITE "Invalid option. Enter a number between 1 and 6."
+            CONTINUE
+        ENDIF
+
+        PROMPT "Enter first number:" AND READ num1
+        PROMPT "Enter second number:" AND READ num2
+
+        IF option == 1 THEN
+            CALL Addition(num1, num2)
+        ELSE IF option == 2 THEN
+            CALL Subtraction(num1, num2)
+        ELSE IF option == 3 THEN
+            CALL Multiplication(num1, num2)
+        ELSE IF option == 4 THEN
+            CALL Division(num1, num2)
+        ENDIF
+    ENDWHILE
+END MAIN
